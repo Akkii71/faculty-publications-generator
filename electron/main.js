@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
-const isDev = process.env.NODE_ENV !== 'production'
+const isDev = !app.isPackaged && process.env.NODE_ENV !== 'production'
 
 // ── Persistent Data Storage Path ──────────────────────────────────────────
 function getDataPath() {
@@ -49,7 +49,7 @@ ipcMain.handle('store:save', async (_event, data) => {
 })
 
 // ── IPC: Native File Save Dialog ──────────────────────────────────────────
-ipcMain.handle('dialog:save-file', async (_event, { defaultFilename, content, filters }) => {
+ipcMain.handle('dialog:save-file', async (_event, { defaultFilename, content, filters, encoding }) => {
   try {
     const win = BrowserWindow.getFocusedWindow()
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
@@ -64,7 +64,15 @@ ipcMain.handle('dialog:save-file', async (_event, { defaultFilename, content, fi
       return { canceled: true }
     }
 
-    fs.writeFileSync(filePath, content, 'utf-8')
+    if (Buffer.isBuffer(content) || content instanceof Uint8Array) {
+      fs.writeFileSync(filePath, Buffer.from(content))
+    } else if (encoding === 'base64') {
+      fs.writeFileSync(filePath, Buffer.from(content, 'base64'))
+    } else if (encoding === 'binary') {
+      fs.writeFileSync(filePath, Buffer.from(content, 'latin1'))
+    } else {
+      fs.writeFileSync(filePath, content, encoding || 'utf-8')
+    }
     return { success: true, filePath }
   } catch (err) {
     console.error('[dialog:save-file] Error saving file:', err)

@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -23,7 +25,7 @@ function escapeCSV(val) {
 }
 
 function downloadInBrowser(filename, content, mimeType = 'text/plain;charset=utf-8;') {
-  const blob = new Blob([content], { type: mimeType })
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -368,6 +370,303 @@ function Reports({ publications = [], faculty = [] }) {
     )
   }
 
+  // 4. Export Current Report as PDF
+  async function exportCurrentReportPDF() {
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      })
+
+      const dateStr = '22 October 2026'
+      const totalPubs = filteredPublications.length
+      const totalFaculty = faculty.length
+      const totalJournals = filteredPublications.filter((p) => p.type === 'Journal').length
+      const totalConferences = filteredPublications.filter((p) => p.type === 'Conference').length
+      const totalBooks = filteredPublications.filter((p) => p.type === 'Book').length
+      const totalOthers = filteredPublications.filter(
+        (p) => !['Journal', 'Conference', 'Book'].includes(p.type)
+      ).length
+
+      // Header Banner
+      doc.setFillColor(30, 41, 59) // Slate-800
+      doc.rect(0, 0, 210, 24, 'F')
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(14)
+      doc.setTextColor(255, 255, 255)
+      doc.text('FACULTY PUBLICATIONS & RESEARCH REPORT', 14, 11)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8.5)
+      doc.setTextColor(203, 213, 225)
+      const viewTitle =
+        activeTab === 'department'
+          ? 'Department Publications Summary'
+          : activeTab === 'annual'
+          ? 'Annual Publication Trends'
+          : 'Faculty Productivity & Research Activity'
+      doc.text(`${viewTitle.toUpperCase()}  |  DATE: ${dateStr}`, 14, 18)
+
+      // Filter & Context Info
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(30, 41, 59)
+      doc.text('Report Details & Scope', 14, 32)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(71, 85, 105)
+      doc.text(`Active Filters : Department: ${deptFilter === 'all' ? 'All Departments' : deptFilter}   |   Year: ${yearFilter === 'all' ? 'All Years' : yearFilter}`, 14, 38)
+      doc.text(`Scope          : ${totalPubs} publication records analyzed across ${totalFaculty} registered faculty profiles`, 14, 43)
+
+      // Summary Statistics Table
+      autoTable(doc, {
+        startY: 48,
+        head: [['Total Publications', 'Faculty Members', 'Journal Articles', 'Conferences', 'Books / Chapters', 'Other Works']],
+        body: [[
+          String(totalPubs),
+          String(totalFaculty),
+          String(totalJournals),
+          String(totalConferences),
+          String(totalBooks),
+          String(totalOthers),
+        ]],
+        theme: 'grid',
+        headStyles: {
+          fillColor: [51, 65, 85],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center',
+          fontSize: 8,
+          cellPadding: 2.5,
+        },
+        bodyStyles: {
+          halign: 'center',
+          fontStyle: 'bold',
+          textColor: [15, 23, 42],
+          fontSize: 10,
+          cellPadding: 3,
+        },
+        margin: { left: 14, right: 14 },
+      })
+
+      let currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 70
+
+      // Section Title for Main Report Data
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.setTextColor(30, 41, 59)
+      doc.text(viewTitle, 14, currentY)
+      currentY += 4
+
+      // Primary Report Table based on activeTab
+      if (activeTab === 'department') {
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Department', 'Faculty', 'Total Pubs', 'Journals', 'Conferences', 'Books', 'Others']],
+          body: departmentReport.map((d) => [
+            d.department,
+            String(d.facultyCount),
+            String(d.total),
+            String(d.journals),
+            String(d.conferences),
+            String(d.books),
+            String(d.others),
+          ]),
+          theme: 'striped',
+          headStyles: {
+            fillColor: [37, 99, 235],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 8.5,
+          },
+          bodyStyles: {
+            fontSize: 8.5,
+            textColor: [30, 41, 59],
+          },
+          columnStyles: {
+            0: { cellWidth: 70, fontStyle: 'bold' },
+            1: { halign: 'center' },
+            2: { halign: 'center', fontStyle: 'bold' },
+            3: { halign: 'center' },
+            4: { halign: 'center' },
+            5: { halign: 'center' },
+            6: { halign: 'center' },
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252],
+          },
+          margin: { left: 14, right: 14 },
+        })
+      } else if (activeTab === 'annual') {
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Year', 'Total Pubs', 'Journals', 'Conferences', 'Books', 'Others', 'Distribution']],
+          body: annualReport.map((y) => {
+            const t = y.total || 1
+            const jP = Math.round((y.journals / t) * 100)
+            const cP = Math.round((y.conferences / t) * 100)
+            const bP = Math.round((y.books / t) * 100)
+            return [
+              String(y.year),
+              String(y.total),
+              String(y.journals),
+              String(y.conferences),
+              String(y.books),
+              String(y.others),
+              `${jP}% J / ${cP}% C / ${bP}% B`,
+            ]
+          }),
+          theme: 'striped',
+          headStyles: {
+            fillColor: [37, 99, 235],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 8.5,
+          },
+          bodyStyles: {
+            fontSize: 8.5,
+            textColor: [30, 41, 59],
+          },
+          columnStyles: {
+            0: { cellWidth: 30, fontStyle: 'bold' },
+            1: { halign: 'center', fontStyle: 'bold' },
+            2: { halign: 'center' },
+            3: { halign: 'center' },
+            4: { halign: 'center' },
+            5: { halign: 'center' },
+            6: { halign: 'center', fontSize: 7.5 },
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252],
+          },
+          margin: { left: 14, right: 14 },
+        })
+      } else {
+        autoTable(doc, {
+          startY: currentY,
+          head: [['Rank', 'Faculty Member', 'Department', 'Designation', 'Total Pubs', 'Journals', 'Conferences', 'Books']],
+          body: facultyProductivityReport.map((f, idx) => [
+            String(idx + 1),
+            f.name + (idx === 0 && f.total > 0 ? ' (Top)' : ''),
+            f.department,
+            f.designation,
+            String(f.total),
+            String(f.journals),
+            String(f.conferences),
+            String(f.books),
+          ]),
+          theme: 'striped',
+          headStyles: {
+            fillColor: [37, 99, 235],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 8.5,
+          },
+          bodyStyles: {
+            fontSize: 8,
+            textColor: [30, 41, 59],
+          },
+          columnStyles: {
+            0: { cellWidth: 12, halign: 'center' },
+            1: { cellWidth: 42, fontStyle: 'bold' },
+            2: { cellWidth: 40 },
+            3: { cellWidth: 32 },
+            4: { halign: 'center', fontStyle: 'bold' },
+            5: { halign: 'center' },
+            6: { halign: 'center' },
+            7: { halign: 'center' },
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252],
+          },
+          margin: { left: 14, right: 14 },
+        })
+      }
+
+      // Detailed Publication Listing section
+      if (filteredPublications.length > 0) {
+        currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : currentY + 40
+
+        // If close to page bottom, add new page
+        if (currentY > 240) {
+          doc.addPage()
+          currentY = 20
+        }
+
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(30, 41, 59)
+        doc.text('Publication Records Detail', 14, currentY)
+
+        autoTable(doc, {
+          startY: currentY + 4,
+          head: [['#', 'Title', 'Authors / Faculty', 'Department', 'Year', 'Type', 'Venue / Details']],
+          body: filteredPublications.map((p, idx) => [
+            String(idx + 1),
+            p.title,
+            p.authors,
+            p.department,
+            String(p.year || ''),
+            p.type,
+            p.venue || p.doi || '-',
+          ]),
+          theme: 'grid',
+          headStyles: {
+            fillColor: [71, 85, 105],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7.5,
+          },
+          bodyStyles: {
+            fontSize: 7.5,
+            textColor: [30, 41, 59],
+          },
+          columnStyles: {
+            0: { cellWidth: 8, halign: 'center' },
+            1: { cellWidth: 48 },
+            2: { cellWidth: 36 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 14, halign: 'center' },
+            5: { cellWidth: 18, halign: 'center' },
+            6: { cellWidth: 28 },
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252],
+          },
+          margin: { left: 14, right: 14 },
+        })
+      }
+
+      // Page numbers and footers across all pages
+      const pageCount = doc.internal.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(148, 163, 184)
+        doc.setDrawColor(226, 232, 240)
+        doc.line(14, 287, 196, 287)
+        doc.text('Faculty Publications Generator · Confidential Report', 14, 292)
+        doc.text(`Page ${i} of ${pageCount}`, 196, 292, { align: 'right' })
+      }
+
+      const pdfBytes = new Uint8Array(doc.output('arraybuffer'))
+      const filename = `faculty_publications_${activeTab}_report_${new Date().toISOString().slice(0, 10)}.pdf`
+      await saveFileSafely(
+        filename,
+        pdfBytes,
+        [{ name: 'PDF Documents', extensions: ['pdf'] }],
+        'PDF report exported successfully'
+      )
+    } catch (err) {
+      console.error('Failed to generate PDF:', err)
+      showToast('error', `Failed to generate PDF report: ${err.message}`)
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   const hasData = publications.length > 0 || faculty.length > 0
 
@@ -393,6 +692,15 @@ function Reports({ publications = [], faculty = [] }) {
         {/* Global Export Actions */}
         <div className="report-action-buttons">
           <button
+            id="export-pdf-btn"
+            className="btn btn-primary"
+            onClick={exportCurrentReportPDF}
+            title="Export current report as PDF document"
+            disabled={!hasData}
+          >
+            📕 Export PDF
+          </button>
+          <button
             id="export-csv-btn"
             className="btn btn-secondary"
             onClick={exportPublicationsCSV}
@@ -403,7 +711,7 @@ function Reports({ publications = [], faculty = [] }) {
           </button>
           <button
             id="export-summary-btn"
-            className="btn btn-primary"
+            className="btn btn-secondary"
             onClick={exportFormattedTextSummary}
             title="Export clean formatted report as text file"
             disabled={!hasData}
@@ -486,6 +794,16 @@ function Reports({ publications = [], faculty = [] }) {
 
         <div className="report-subbar-export">
           <button
+            id="export-view-pdf-btn"
+            className="btn btn-secondary btn-sm"
+            onClick={exportCurrentReportPDF}
+            title="Export currently displayed table view as PDF"
+            disabled={!hasData}
+          >
+            📕 Export View PDF
+          </button>
+          <button
+            id="export-view-csv-btn"
             className="btn btn-secondary btn-sm"
             onClick={exportCurrentReportCSV}
             title="Export currently displayed table view as CSV"

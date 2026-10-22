@@ -9,7 +9,35 @@
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
     "build": "vite build && electron-builder",
+    "build:mac": "vite build && electron-builder --mac dmg --arm64",
     "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.facultypublications.generator",
+    "productName": "Faculty Publications Generator",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "identity": null
+    },
+    "dmg": {
+      "title": "Faculty Publications Generator"
+    }
   },
   "keywords": [
     "electron",
@@ -21,6 +49,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
@@ -29,6 +59,7 @@
     "concurrently": "^10.0.6",
     "cross-env": "^10.1.0",
     "electron": "^45.0.0",
+    "electron-builder": "^26.15.3",
     "vite": "^8.3.5",
     "wait-on": "^9.5.1"
   }
