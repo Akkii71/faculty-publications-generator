@@ -12,6 +12,7 @@ const EMPTY_FORM = {
   venue: '',
   type: 'Journal',
   doi: '',
+  facultyId: '',
 }
 
 function generateId() {
@@ -34,13 +35,23 @@ function validate(form) {
 // ---------------------------------------------------------------------------
 // Publication Modal  (Add + Edit)
 // ---------------------------------------------------------------------------
-function PublicationModal({ mode, initialData, onClose, onSave }) {
-  const [form, setForm]     = useState(initialData || EMPTY_FORM)
+function PublicationModal({ mode, initialData, faculty = [], onClose, onSave }) {
+  const [form, setForm]     = useState(initialData ? { ...EMPTY_FORM, ...initialData } : EMPTY_FORM)
   const [errors, setErrors] = useState({})
 
   function handleChange(e) {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+    setForm((prev) => {
+      const updated = { ...prev, [name]: value }
+      // Auto-fill authors if faculty selected and authors is empty
+      if (name === 'facultyId' && value) {
+        const selectedFac = faculty.find((f) => f.id === value)
+        if (selectedFac && !prev.authors.trim()) {
+          updated.authors = selectedFac.name
+        }
+      }
+      return updated
+    })
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
   }
 
@@ -95,6 +106,25 @@ function PublicationModal({ mode, initialData, onClose, onSave }) {
               onChange={handleChange}
             />
             {errors.authors && <span className="error-msg">{errors.authors}</span>}
+          </div>
+
+          {/* Link to Faculty Profile */}
+          <div className="form-group">
+            <label htmlFor="pub-faculty">Linked Faculty Member <span className="optional">(optional)</span></label>
+            <select
+              id="pub-faculty"
+              name="facultyId"
+              className="form-input form-select"
+              value={form.facultyId || ''}
+              onChange={handleChange}
+            >
+              <option value="">-- None / External Author --</option>
+              {faculty.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name} ({f.department})
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Year + Type */}
@@ -255,7 +285,7 @@ function Toolbar({ search, onSearch, filterYear, onFilterYear, filterType, onFil
 // ---------------------------------------------------------------------------
 // Publications Page
 // ---------------------------------------------------------------------------
-function Publications({ publications, setPublications }) {
+function Publications({ publications = [], setPublications, faculty = [] }) {
   const [showAddModal,   setShowAddModal]   = useState(false)
   const [editingPub,     setEditingPub]     = useState(null)   // publication object | null
   const [deletingPub,    setDeletingPub]    = useState(null)   // publication object | null
@@ -370,39 +400,54 @@ function Publications({ publications, setPublications }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((pub) => (
-                <tr key={pub.id}>
-                  <td className="td-title">
-                    {pub.doi ? (
-                      <a href={pub.doi} target="_blank" rel="noreferrer" className="pub-link" title={pub.doi}>
-                        {pub.title}
-                      </a>
-                    ) : pub.title}
-                  </td>
-                  <td className="td-authors">{pub.authors}</td>
-                  <td>{pub.year}</td>
-                  <td>
-                    <span className={`badge badge-${pub.type.toLowerCase()}`}>{pub.type}</span>
-                  </td>
-                  <td className="td-venue">{pub.venue || '—'}</td>
-                  <td className="td-actions">
-                    <button
-                      className="btn-icon btn-edit"
-                      title="Edit"
-                      onClick={() => setEditingPub(pub)}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="btn-icon btn-delete"
-                      title="Delete"
-                      onClick={() => setDeletingPub(pub)}
-                    >
-                      🗑
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((pub) => {
+                const linkedFac = pub.facultyId ? faculty.find((f) => f.id === pub.facultyId) : null
+                return (
+                  <tr key={pub.id}>
+                    <td className="td-title">
+                      {pub.doi ? (
+                        <a href={pub.doi} target="_blank" rel="noreferrer" className="pub-link" title={pub.doi}>
+                          {pub.title}
+                        </a>
+                      ) : pub.title}
+                    </td>
+                    <td className="td-authors">
+                      <div className="authors-container">
+                        <span>{pub.authors}</span>
+                        {linkedFac && (
+                          <span
+                            className="faculty-tag"
+                            title={`Linked Faculty: ${linkedFac.name} (${linkedFac.department})`}
+                          >
+                            👤 {linkedFac.name}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>{pub.year}</td>
+                    <td>
+                      <span className={`badge badge-${pub.type.toLowerCase()}`}>{pub.type}</span>
+                    </td>
+                    <td className="td-venue">{pub.venue || '—'}</td>
+                    <td className="td-actions">
+                      <button
+                        className="btn-icon btn-edit"
+                        title="Edit"
+                        onClick={() => setEditingPub(pub)}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="btn-icon btn-delete"
+                        title="Delete"
+                        onClick={() => setDeletingPub(pub)}
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
 
@@ -418,6 +463,7 @@ function Publications({ publications, setPublications }) {
       {showAddModal && (
         <PublicationModal
           mode="add"
+          faculty={faculty}
           onClose={() => setShowAddModal(false)}
           onSave={handleAdd}
         />
@@ -427,6 +473,7 @@ function Publications({ publications, setPublications }) {
       {editingPub && (
         <PublicationModal
           mode="edit"
+          faculty={faculty}
           initialData={editingPub}
           onClose={() => setEditingPub(null)}
           onSave={handleEdit}

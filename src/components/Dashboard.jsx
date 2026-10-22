@@ -1,6 +1,7 @@
-function Dashboard({ publications = [] }) {
-  const total       = publications.length
-  const journals    = publications.filter((p) => p.type === 'Journal').length
+function Dashboard({ publications = [], faculty = [] }) {
+  const total = publications.length
+  const facultyCount = faculty.length
+  const journals = publications.filter((p) => p.type === 'Journal').length
   const conferences = publications.filter((p) => p.type === 'Conference').length
 
   const SUMMARY_CARDS = [
@@ -14,7 +15,7 @@ function Dashboard({ publications = [] }) {
     {
       id: 'faculty-members',
       label: 'Faculty Members',
-      value: 0,
+      value: facultyCount,
       icon: '👤',
       accent: '#10b981',
     },
@@ -37,8 +38,10 @@ function Dashboard({ publications = [] }) {
   return (
     <div className="page">
       <div className="page-header">
-        <h2 className="page-title">Dashboard</h2>
-        <p className="page-subtitle">Overview of your faculty publications</p>
+        <div>
+          <h2 className="page-title">Dashboard</h2>
+          <p className="page-subtitle">Overview of your faculty publications and research output</p>
+        </div>
       </div>
 
       <div className="summary-grid">
@@ -56,7 +59,7 @@ function Dashboard({ publications = [] }) {
         ))}
       </div>
 
-      {total === 0 ? (
+      {total === 0 && facultyCount === 0 ? (
         <div className="dashboard-empty">
           <div className="dashboard-empty-icon">📊</div>
           <h3>No data yet</h3>
@@ -65,7 +68,8 @@ function Dashboard({ publications = [] }) {
       ) : (
         <div className="dashboard-summary-text">
           <p>
-            You have <strong>{total}</strong> publication{total !== 1 ? 's' : ''} recorded —{' '}
+            You have <strong>{total}</strong> publication{total !== 1 ? 's' : ''} recorded across{' '}
+            <strong>{facultyCount}</strong> faculty member{facultyCount !== 1 ? 's' : ''} —{' '}
             <strong>{journals}</strong> journal{journals !== 1 ? 's' : ''} and{' '}
             <strong>{conferences}</strong> conference{conferences !== 1 ? 's' : ''}.
           </p>
