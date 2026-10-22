@@ -1,35 +1,39 @@
-const SUMMARY_CARDS = [
-  {
-    id: 'total-publications',
-    label: 'Total Publications',
-    value: 0,
-    icon: '📄',
-    accent: '#4f6ef7',
-  },
-  {
-    id: 'faculty-members',
-    label: 'Faculty Members',
-    value: 0,
-    icon: '👤',
-    accent: '#10b981',
-  },
-  {
-    id: 'journals',
-    label: 'Journals',
-    value: 0,
-    icon: '📰',
-    accent: '#f59e0b',
-  },
-  {
-    id: 'conferences',
-    label: 'Conferences',
-    value: 0,
-    icon: '🏛️',
-    accent: '#8b5cf6',
-  },
-]
+function Dashboard({ publications = [] }) {
+  const total       = publications.length
+  const journals    = publications.filter((p) => p.type === 'Journal').length
+  const conferences = publications.filter((p) => p.type === 'Conference').length
 
-function Dashboard() {
+  const SUMMARY_CARDS = [
+    {
+      id: 'total-publications',
+      label: 'Total Publications',
+      value: total,
+      icon: '📄',
+      accent: '#4f6ef7',
+    },
+    {
+      id: 'faculty-members',
+      label: 'Faculty Members',
+      value: 0,
+      icon: '👤',
+      accent: '#10b981',
+    },
+    {
+      id: 'journals',
+      label: 'Journals',
+      value: journals,
+      icon: '📰',
+      accent: '#f59e0b',
+    },
+    {
+      id: 'conferences',
+      label: 'Conferences',
+      value: conferences,
+      icon: '🏛️',
+      accent: '#8b5cf6',
+    },
+  ]
+
   return (
     <div className="page">
       <div className="page-header">
@@ -52,11 +56,21 @@ function Dashboard() {
         ))}
       </div>
 
-      <div className="dashboard-empty">
-        <div className="dashboard-empty-icon">📊</div>
-        <h3>No data yet</h3>
-        <p>Add publications and faculty profiles to see your dashboard come to life.</p>
-      </div>
+      {total === 0 ? (
+        <div className="dashboard-empty">
+          <div className="dashboard-empty-icon">📊</div>
+          <h3>No data yet</h3>
+          <p>Add publications and faculty profiles to see your dashboard come to life.</p>
+        </div>
+      ) : (
+        <div className="dashboard-summary-text">
+          <p>
+            You have <strong>{total}</strong> publication{total !== 1 ? 's' : ''} recorded —{' '}
+            <strong>{journals}</strong> journal{journals !== 1 ? 's' : ''} and{' '}
+            <strong>{conferences}</strong> conference{conferences !== 1 ? 's' : ''}.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

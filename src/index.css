@@ -588,3 +588,157 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   gap: 10px;
   padding-top: 6px;
 }
+
+/* ============================================================
+   Toolbar (Search + Filters)
+   ============================================================ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.toolbar-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.toolbar-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  pointer-events: none;
+  opacity: .6;
+}
+
+.toolbar-input {
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 30px;
+}
+
+.toolbar-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: background var(--transition), color var(--transition);
+}
+.toolbar-clear:hover {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.toolbar-filters {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-select {
+  min-width: 120px;
+}
+
+/* ============================================================
+   Edit Button
+   ============================================================ */
+.btn-edit {
+  color: var(--color-accent);
+}
+.btn-edit:hover {
+  background: var(--color-accent-light);
+}
+
+.td-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Danger Button
+   ============================================================ */
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background var(--transition), transform var(--transition);
+}
+.btn-danger:hover { background: #dc2626; }
+.btn-danger:active { transform: scale(.97); }
+
+/* ============================================================
+   Confirm Dialog
+   ============================================================ */
+.confirm-modal {
+  max-width: 400px;
+}
+
+.confirm-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirm-body > p {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.confirm-pub-title {
+  font-size: 0.9rem !important;
+  font-weight: 600;
+  color: var(--color-text-primary) !important;
+  word-break: break-word;
+}
+
+.confirm-warning {
+  font-size: 0.78rem !important;
+  color: var(--color-danger) !important;
+}
+
+.confirm-actions {
+  padding: 0 24px 20px;
+}
+
+/* ============================================================
+   Table Footer Info
+   ============================================================ */
+.table-footer-info {
+  padding: 10px 16px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+/* ============================================================
+   Dashboard Summary Text
+   ============================================================ */
+.dashboard-summary-text {
+  background: var(--color-accent-light);
+  border: 1px solid #d4dcfc;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.dashboard-summary-text strong {
+  color: var(--color-accent);
+  font-weight: 700;
+}
